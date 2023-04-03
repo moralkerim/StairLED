@@ -1,7 +1,7 @@
 #include <FastLED.h> //Kütüphane import 
 #include "NewPing.h"
 
-//#define DEBUG
+#define DEBUG
 
 #define NUM_LEDS 4 //Led Sayısı
 #define DATA_PIN 7 //Led Din giriş pini
@@ -10,18 +10,19 @@
 
 #define MAX_DISTANCE 400
 #define TOGGLE_RATE 2000
+#define MES_RATE 100
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
 float duration, distance;
 
 CRGB leds[NUM_LEDS]; //Led Dizisi oluşturduk
-int8_t last_led = -1;
+int8_t last_led = 0;
 bool out_of_range;
-unsigned long toggle_time;
+unsigned long toggle_time, mes_time;
 
 typedef enum LED_STATE
 {
-  turn_on = 0,
-  turn_off = 1
+  turn_on,
+  turn_off
 };
 
 LED_STATE led_state = turn_on;
@@ -50,6 +51,7 @@ void loop() {
     case turn_off:
       LedSlideOff();
       break;
+
   }
 
 #ifdef DEBUG
@@ -59,23 +61,44 @@ void loop() {
   Serial.println("--------------");
 #endif
 
-  delay(100);
+
 }
 
 void LedSlide() {
-  if (last_led < NUM_LEDS - 1) {
-    last_led++;
+  for (int i = 0; i < NUM_LEDS; i++) {
+    leds[i].setRGB(255, 255, 255); //sonraki 5 ledi
+    FastLED.show();
+    delay(100);
+
   }
-  leds[last_led].setRGB(255, 255, 255); //sonraki 5 ledi
-  FastLED.show();
+  
 }
 
 void LedSlideOff() {
-  if (last_led > 0) {
-    last_led--;
+  for (int i = NUM_LEDS - 1; i > -1; i--) {
+    leds[i].setRGB(0, 0, 0); //sonraki 5 ledi
+    FastLED.show();
+    delay(100);
+
   }
-  leds[last_led].setRGB(0, 0, 0); //sonraki 5 ledi
-  FastLED.show();
+}
+
+void FadeIn(uint8_t start_val, uint8_t end_val, uint8_t led) {
+  for (int i = start_val; i <= end_val; i++) {
+    leds[last_led].setRGB(i, i, i); //sonraki 5 ledi
+    FastLED.show();
+    delay(1);
+
+  }
+}
+
+void FadeOut(uint8_t start_val, uint8_t end_val, uint8_t led) {
+  for (int i = start_val; i >= end_val; i--) {
+    leds[last_led].setRGB(i, i, i); //sonraki 5 ledi
+    FastLED.show();
+    delay(1);
+
+  }
 }
 
 void CheckOnOff() {
@@ -107,13 +130,10 @@ void CheckOnOff() {
 void ToggleLED() {
   switch (led_state) {
     case turn_on:
-      last_led = NUM_LEDS;
       led_state = turn_off;
       break;
 
     case turn_off:
-
-      last_led = -1;
       led_state = turn_on;
       break;
   }
@@ -121,16 +141,20 @@ void ToggleLED() {
 
 
 void MeasureDistance() {
-  distance = sonar.ping_cm();
-  //Serial.println(distance);
-  if (distance >= 400 || distance <= 2)
-  {
-    out_of_range = true;
+  if (millis() - mes_time > MES_RATE) {
+    mes_time = millis();
+    distance = sonar.ping_cm();
+    //Serial.println(distance);
+    if (distance >= 400 || distance <= 2)
+    {
+      out_of_range = true;
+    }
+
+    else {
+      out_of_range = false;
+    }
   }
 
-  else {
-    out_of_range = false;
-  }
 }
 
 void TurnOffLeds() {
