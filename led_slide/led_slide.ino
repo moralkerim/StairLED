@@ -22,10 +22,12 @@ unsigned long toggle_time, mes_time;
 typedef enum LED_STATE
 {
   turn_on,
-  turn_off
+  turn_off,
+  idle
 };
 
 LED_STATE led_state = turn_on;
+LED_STATE prev_state = led_state;
 
 void setup() {
   Serial.begin(115200);
@@ -52,6 +54,9 @@ void loop() {
       LedSlideOff();
       break;
 
+    default:
+      break;
+
   }
 
 #ifdef DEBUG
@@ -66,39 +71,50 @@ void loop() {
 
 void LedSlide() {
   for (int i = 0; i < NUM_LEDS; i++) {
-    leds[i].setRGB(255, 255, 255); //sonraki 5 ledi
-    FastLED.show();
-    delay(100);
+    FadeIn(0, 255, i);
+    //    leds[i].setRGB(255, 255, 255); //sonraki 5 ledi
+    //    FastLED.show();
+    //delay(100);
 
   }
-  
+  prev_state = led_state;
+  led_state = idle;
+
 }
 
 void LedSlideOff() {
   for (int i = NUM_LEDS - 1; i > -1; i--) {
-    leds[i].setRGB(0, 0, 0); //sonraki 5 ledi
-    FastLED.show();
-    delay(100);
+    FadeOut(255, 0, i);
+    //    leds[i].setRGB(0, 0, 0); //sonraki 5 ledi
+    //    FastLED.show();
+    //delay(100);
 
   }
+  prev_state = led_state;
+  led_state = idle;
 }
 
 void FadeIn(uint8_t start_val, uint8_t end_val, uint8_t led) {
-  for (int i = start_val; i <= end_val; i++) {
-    leds[last_led].setRGB(i, i, i); //sonraki 5 ledi
+  for (int i = start_val; i <= end_val; i = i + 7) {
+    leds[led].setRGB(i, i, i); //sonraki 5 ledi
     FastLED.show();
-    delay(1);
+    delayMicroseconds(1);
 
   }
+
+  leds[led].setRGB(end_val, end_val, end_val); //sonraki 5 ledi
+  FastLED.show();
 }
 
 void FadeOut(uint8_t start_val, uint8_t end_val, uint8_t led) {
-  for (int i = start_val; i >= end_val; i--) {
-    leds[last_led].setRGB(i, i, i); //sonraki 5 ledi
+  for (int i = start_val; i >= end_val; i = i - 7) {
+    leds[led].setRGB(i, i, i); //sonraki 5 ledi
     FastLED.show();
-    delay(1);
+    delayMicroseconds(1);
 
   }
+  leds[led].setRGB(end_val, end_val, end_val); //sonraki 5 ledi
+  FastLED.show();
 }
 
 void CheckOnOff() {
@@ -128,13 +144,16 @@ void CheckOnOff() {
 }
 
 void ToggleLED() {
-  switch (led_state) {
+  switch (prev_state) {
     case turn_on:
       led_state = turn_off;
       break;
 
     case turn_off:
       led_state = turn_on;
+      break;
+
+    default:
       break;
   }
 }
