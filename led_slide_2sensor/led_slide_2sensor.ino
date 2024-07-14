@@ -6,14 +6,19 @@
 #define NUM_LEDS 1400  //Led Sayısı
 #define DATA_PIN 4    //Led Din giriş pini
 
-#define S1_PIN 2
-#define S2_PIN 3
 
-#define FADE_NUM 5
+#define TRIGGER_PIN2 3
+#define ECHO_PIN2 7
+
+#define TRIGGER_PIN1 2
+#define ECHO_PIN1 6
+
+#define FADE_NUM 7
 
 #define TOGGLE_RATE 2000
 #define MES_RATE 100
 #define INT_INTERVAL 5000
+#define MAX_DISTANCE 400
 
 CRGB leds[NUM_LEDS];  //Led Dizisi oluşturduk
 int8_t last_led = 0;
@@ -32,16 +37,36 @@ typedef enum LED_STATE {
 
 LED_STATE led_state = kapali;
 
+NewPing sonar1(TRIGGER_PIN1, ECHO_PIN1, MAX_DISTANCE);
+NewPing sonar2(TRIGGER_PIN2, ECHO_PIN2, MAX_DISTANCE);
+float duration1, distance1;
+float duration2, distance2;
+
 void setup() {
   Serial.begin(115200);
-  attachInterrupt(digitalPinToInterrupt(S1_PIN), S1_INT, RISING);
-  attachInterrupt(digitalPinToInterrupt(S2_PIN), S2_INT, RISING);
+
   FastLED.addLeds<WS2811, DATA_PIN, GRB>(leds, NUM_LEDS);  //Fastlede led dizimizi ekledik
-  FastLED.setBrightness(255);                              //Parlaklık ayarı 0-255
+  FastLED.setBrightness(130);                              //Parlaklık ayarı 0-255
   TurnOffLeds();
 }
 
+
 void loop() {
+
+  distance1 = sonar1.ping_cm();
+  distance2 = sonar2.ping_cm();
+
+  Serial.print("Distance1:"); Serial.println(distance1);
+  Serial.print("Distance2:"); Serial.println(distance2);
+  Serial.println("------------------------------");
+
+  if (distance1 < 60 && distance1 > 10) {
+    S1_INT();
+  }
+
+  else if(distance2 < 90 && distance2 > 10) {
+    S2_INT();
+  }
 
   //  switch (led_state) {
   //    case acik:
@@ -61,9 +86,6 @@ void loop() {
 }
 
 void S1_INT() {
-
-  if (millis() - s1_time > INT_INTERVAL) {
-
 
 
     Serial.println("S1 İnt.");
@@ -88,15 +110,9 @@ void S1_INT() {
       }
 
     }
-
-    s1_time = millis();
-    //d//delay2000);
-  }
 }
 
 void S2_INT() {
-
-  if (millis() - s2_time > INT_INTERVAL) {
 
     Serial.println("S2 İnt.");
     Serial.println("-------");
@@ -119,9 +135,6 @@ void S2_INT() {
       }
     }
 
-    s2_time = millis();
-  }
-  //de//delay000);
 }
 
 void YukariAcil() {
@@ -136,6 +149,7 @@ void YukariAcil() {
   int count1 = 1;
   for (int i = 0; i < NUM_LEDS; i++) {
     leds[i] = CRGB::White;
+    //leds[i].setRGB(255, 255, 30);
     count1++;
     if (count1 == FADE_NUM) {
       FastLED.show();
@@ -151,7 +165,8 @@ void AsagiAcil() {
   Serial.println("Aşağı Açılıyor.");
   int count2 = 1;
   for (int i = NUM_LEDS - 1; i > -1; i--) {
-    leds[i] = CRGB::White;
+    leds[i] = CRGB::White; 
+    //leds[i].setRGB(253, 251, 155);
     count2++;
     if (count2 == FADE_NUM) {
       FastLED.show();
@@ -175,6 +190,8 @@ void AsagiKapan() {
 
     //  delayMicroseconds(1);
   }
+
+  TurnOffLeds();
 }
 
 void YukariKapan() {
@@ -190,6 +207,8 @@ void YukariKapan() {
 
     //delayMicroseconds(1);
   }
+
+  TurnOffLeds();
 }
 
 void FadeIn(uint8_t start_val, uint8_t end_val, uint8_t led) {
